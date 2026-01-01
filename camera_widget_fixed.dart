@@ -25,21 +25,21 @@ import 'dart:math' as math;
 import 'dart:async';
 
 /// ============================================================================
-/// CONFIGURATION SIMPLIFIÉE
+/// CONFIGURATION SIMPLIFIÉE - Seuils réalistes pour photo d'identité
 /// ============================================================================
 class FaceDetectionConfig {
   // Taille du visage (ratio par rapport à la hauteur de l'écran)
-  static const double minFaceSize = 0.35; // 35% de l'écran
-  static const double maxFaceSize = 0.70; // 70% de l'écran
+  static const double minFaceSize = 0.15; // 15% de l'écran (CORRIGÉ: était 35%)
+  static const double maxFaceSize = 0.50; // 50% de l'écran (CORRIGÉ: était 70%)
 
   // Tolérance de centrage (ratio par rapport aux dimensions de l'écran)
-  static const double centerTolerance = 0.15; // 15%
+  static const double centerTolerance = 0.20; // 20% (ÉLARGI: était 15%)
 
   // Tolérance d'angle (degrés)
-  static const double angleTolerance = 20.0;
+  static const double angleTolerance = 25.0; // 25° (ÉLARGI: était 20°)
 
   // Seuil d'ouverture des yeux
-  static const double eyeOpenThreshold = 0.5;
+  static const double eyeOpenThreshold = 0.4; // 40% (ASSOUPLI: était 50%)
 }
 
 /// ============================================================================
