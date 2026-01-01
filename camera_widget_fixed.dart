@@ -276,6 +276,17 @@ class FaceValidator {
   FaceValidationResult validate(Face face) {
     final rect = face.boundingBox;
 
+    // ========== LOGS DÉTAILLÉS - PARTIE 1: COORDONNÉES BRUTES ==========
+    debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    debugPrint("📊 VALIDATION DE VISAGE - DÉBUT");
+    debugPrint("🔹 Bounding Box (coordonnées image brutes):");
+    debugPrint("   - Left: ${rect.left.toStringAsFixed(1)}");
+    debugPrint("   - Top: ${rect.top.toStringAsFixed(1)}");
+    debugPrint("   - Width: ${rect.width.toStringAsFixed(1)}");
+    debugPrint("   - Height: ${rect.height.toStringAsFixed(1)}");
+    debugPrint("   - Center X (image): ${(rect.left + rect.width / 2).toStringAsFixed(1)}");
+    debugPrint("   - Center Y (image): ${(rect.top + rect.height / 2).toStringAsFixed(1)}");
+
     // Transformer les coordonnées - comme FaceGraphic.kt ligne 65-73
     final double faceCenterX =
         transformer.translateX(rect.left + rect.width / 2);
@@ -283,6 +294,13 @@ class FaceValidator {
         transformer.translateY(rect.top + rect.height / 2);
     final double faceHeight = transformer.scale(rect.height.toDouble());
     final double faceWidth = transformer.scale(rect.width.toDouble());
+
+    // ========== LOGS DÉTAILLÉS - PARTIE 2: COORDONNÉES TRANSFORMÉES ==========
+    debugPrint("🔹 Coordonnées transformées (écran):");
+    debugPrint("   - Face Center X (écran): ${faceCenterX.toStringAsFixed(1)} px");
+    debugPrint("   - Face Center Y (écran): ${faceCenterY.toStringAsFixed(1)} px");
+    debugPrint("   - Face Width (écran): ${faceWidth.toStringAsFixed(1)} px");
+    debugPrint("   - Face Height (écran): ${faceHeight.toStringAsFixed(1)} px");
 
     // Calculer les métriques
     final double screenCenterX = viewSize.width / 2;
@@ -293,46 +311,88 @@ class FaceValidator {
     final double offsetY =
         (faceCenterY - screenCenterY).abs() / viewSize.height;
 
+    // ========== LOGS DÉTAILLÉS - PARTIE 3: MÉTRIQUES CALCULÉES ==========
+    debugPrint("🔹 Centres d'écran:");
+    debugPrint("   - Screen Center X: ${screenCenterX.toStringAsFixed(1)} px");
+    debugPrint("   - Screen Center Y: ${screenCenterY.toStringAsFixed(1)} px");
+    debugPrint("   - Screen Size: ${viewSize.width.toStringAsFixed(1)} x ${viewSize.height.toStringAsFixed(1)}");
+
+    debugPrint("🔹 Ratios et Offsets calculés:");
+    debugPrint("   - Face Ratio (height/screen): ${(faceRatio * 100).toStringAsFixed(2)}%");
+    debugPrint("   - Offset X (distance horizontale): ${(offsetX * 100).toStringAsFixed(2)}%");
+    debugPrint("   - Offset Y (distance verticale): ${(offsetY * 100).toStringAsFixed(2)}%");
+
+    debugPrint("🔹 Seuils de validation:");
+    debugPrint("   - Min Face Size: ${(FaceDetectionConfig.minFaceSize * 100).toStringAsFixed(0)}%");
+    debugPrint("   - Max Face Size: ${(FaceDetectionConfig.maxFaceSize * 100).toStringAsFixed(0)}%");
+    debugPrint("   - Center Tolerance: ${(FaceDetectionConfig.centerTolerance * 100).toStringAsFixed(0)}%");
+    debugPrint("   - Angle Tolerance: ${FaceDetectionConfig.angleTolerance}°");
+
     String debugStr = "Size:${(faceRatio * 100).toStringAsFixed(0)}% ";
     debugStr += "X:${(offsetX * 100).toStringAsFixed(0)}% ";
     debugStr += "Y:${(offsetY * 100).toStringAsFixed(0)}% ";
 
-    // Vérifications
+    // ========== VÉRIFICATIONS AVEC LOGS ==========
 
     // Taille du visage
+    debugPrint("🔍 CHECK 1: Taille du visage");
+    debugPrint("   - Face ratio: ${(faceRatio * 100).toStringAsFixed(2)}%");
+    debugPrint("   - Min requis: ${(FaceDetectionConfig.minFaceSize * 100).toStringAsFixed(0)}%");
+    debugPrint("   - Max requis: ${(FaceDetectionConfig.maxFaceSize * 100).toStringAsFixed(0)}%");
+
     if (faceRatio < FaceDetectionConfig.minFaceSize) {
+      debugPrint("   ❌ ÉCHEC: Visage trop petit (${(faceRatio * 100).toStringAsFixed(2)}% < ${(FaceDetectionConfig.minFaceSize * 100).toStringAsFixed(0)}%)");
+      debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       return FaceValidationResult.error(
         "Rapprochez-vous",
         Icons.zoom_in_outlined,
         debugStr + "TROP_LOIN",
       );
     }
+    debugPrint("   ✅ OK: Taille minimale respectée");
 
     if (faceRatio > FaceDetectionConfig.maxFaceSize) {
+      debugPrint("   ❌ ÉCHEC: Visage trop grand (${(faceRatio * 100).toStringAsFixed(2)}% > ${(FaceDetectionConfig.maxFaceSize * 100).toStringAsFixed(0)}%)");
+      debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       return FaceValidationResult.error(
         "Éloignez-vous",
         Icons.zoom_out_outlined,
         debugStr + "TROP_PRES",
       );
     }
+    debugPrint("   ✅ OK: Taille maximale respectée");
 
     // Centrage horizontal
+    debugPrint("🔍 CHECK 2: Centrage horizontal");
+    debugPrint("   - Offset X: ${(offsetX * 100).toStringAsFixed(2)}%");
+    debugPrint("   - Tolérance: ${(FaceDetectionConfig.centerTolerance * 100).toStringAsFixed(0)}%");
+
     if (offsetX > FaceDetectionConfig.centerTolerance) {
+      debugPrint("   ❌ ÉCHEC: Décentré horizontalement (${(offsetX * 100).toStringAsFixed(2)}% > ${(FaceDetectionConfig.centerTolerance * 100).toStringAsFixed(0)}%)");
+      debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       return FaceValidationResult.error(
         "Centrez horizontalement",
         Icons.center_focus_weak,
         debugStr + "DECENTRE_H",
       );
     }
+    debugPrint("   ✅ OK: Centrage horizontal respecté");
 
     // Centrage vertical
+    debugPrint("🔍 CHECK 3: Centrage vertical");
+    debugPrint("   - Offset Y: ${(offsetY * 100).toStringAsFixed(2)}%");
+    debugPrint("   - Tolérance: ${(FaceDetectionConfig.centerTolerance * 100).toStringAsFixed(0)}%");
+
     if (offsetY > FaceDetectionConfig.centerTolerance) {
+      debugPrint("   ❌ ÉCHEC: Décentré verticalement (${(offsetY * 100).toStringAsFixed(2)}% > ${(FaceDetectionConfig.centerTolerance * 100).toStringAsFixed(0)}%)");
+      debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       return FaceValidationResult.error(
         "Centrez verticalement",
         Icons.center_focus_weak,
         debugStr + "DECENTRE_V",
       );
     }
+    debugPrint("   ✅ OK: Centrage vertical respecté");
 
     // Orientation
     final double yaw = face.headEulerAngleY ?? 0;
@@ -340,39 +400,65 @@ class FaceValidator {
 
     debugStr += "Yaw:${yaw.toInt()}° Roll:${roll.toInt()}° ";
 
+    debugPrint("🔍 CHECK 4: Orientation (Yaw)");
+    debugPrint("   - Yaw: ${yaw.toStringAsFixed(1)}°");
+    debugPrint("   - Tolérance: ±${FaceDetectionConfig.angleTolerance}°");
+
     if (yaw.abs() > FaceDetectionConfig.angleTolerance) {
+      debugPrint("   ❌ ÉCHEC: Rotation horizontale trop grande (${yaw.toStringAsFixed(1)}° > ${FaceDetectionConfig.angleTolerance}°)");
+      debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       return FaceValidationResult.error(
         "Regardez droit devant",
         Icons.crop_rotate,
         debugStr + "YAW",
       );
     }
+    debugPrint("   ✅ OK: Yaw respecté");
+
+    debugPrint("🔍 CHECK 5: Orientation (Roll)");
+    debugPrint("   - Roll: ${roll.toStringAsFixed(1)}°");
+    debugPrint("   - Tolérance: ±${FaceDetectionConfig.angleTolerance}°");
 
     if (roll.abs() > FaceDetectionConfig.angleTolerance) {
+      debugPrint("   ❌ ÉCHEC: Inclinaison trop grande (${roll.toStringAsFixed(1)}° > ${FaceDetectionConfig.angleTolerance}°)");
+      debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
       return FaceValidationResult.error(
         "Tenez votre tête droite",
         Icons.crop_rotate,
         debugStr + "ROLL",
       );
     }
+    debugPrint("   ✅ OK: Roll respecté");
 
     // Yeux ouverts
+    debugPrint("🔍 CHECK 6: Yeux ouverts");
     if (face.leftEyeOpenProbability != null &&
         face.rightEyeOpenProbability != null) {
       final double leftEye = face.leftEyeOpenProbability!;
       final double rightEye = face.rightEyeOpenProbability!;
 
+      debugPrint("   - Left Eye: ${(leftEye * 100).toStringAsFixed(1)}%");
+      debugPrint("   - Right Eye: ${(rightEye * 100).toStringAsFixed(1)}%");
+      debugPrint("   - Seuil: ${(FaceDetectionConfig.eyeOpenThreshold * 100).toStringAsFixed(0)}%");
+
       if (leftEye < FaceDetectionConfig.eyeOpenThreshold ||
           rightEye < FaceDetectionConfig.eyeOpenThreshold) {
+        debugPrint("   ❌ ÉCHEC: Yeux fermés");
+        debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
         return FaceValidationResult.error(
           "Ouvrez les yeux",
           Icons.remove_red_eye_outlined,
           debugStr + "YEUX_FERMES",
         );
       }
+      debugPrint("   ✅ OK: Yeux ouverts");
+    } else {
+      debugPrint("   ⚠️  SKIP: Données yeux non disponibles");
     }
 
     // Tout est bon!
+    debugPrint("✅✅✅ TOUS LES CHECKS PASSÉS - PHOTO OK!");
+    debugPrint("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
     return FaceValidationResult.success(debugStr + "✅");
   }
 }
