@@ -33,7 +33,7 @@ class FaceDetectionConfig {
   static const double maxFaceSize = 0.50; // 50% de l'écran (CORRIGÉ: était 70%)
 
   // Tolérance de centrage (ratio par rapport aux dimensions de l'écran)
-  static const double centerTolerance = 0.20; // 20% (ÉLARGI: était 15%)
+  static const double centerTolerance = 0.25; // 25% (ÉLARGI: était 20%, puis 15%)
 
   // Tolérance d'angle (degrés)
   static const double angleTolerance = 25.0; // 25° (ÉLARGI: était 20°)
