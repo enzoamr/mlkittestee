@@ -302,6 +302,18 @@ class FaceValidator {
     debugPrint("   - Face Width (écran): ${faceWidth.toStringAsFixed(1)} px");
     debugPrint("   - Face Height (écran): ${faceHeight.toStringAsFixed(1)} px");
 
+    // 🐛 DEBUG NaN: Vérifier si les valeurs transformées sont valides
+    if (faceCenterX.isNaN || faceCenterY.isNaN || faceHeight.isNaN || faceWidth.isNaN) {
+      debugPrint("❌ ERROR: Coordonnées transformées contiennent NaN!");
+      debugPrint("   - faceCenterX: $faceCenterX");
+      debugPrint("   - faceCenterY: $faceCenterY");
+      debugPrint("   - faceHeight: $faceHeight");
+      debugPrint("   - faceWidth: $faceWidth");
+      debugPrint("   - Transformer scaleFactor: ${transformer.scaleFactor}");
+      debugPrint("   - Transformer postScaleWidthOffset: ${transformer.postScaleWidthOffset}");
+      debugPrint("   - Transformer postScaleHeightOffset: ${transformer.postScaleHeightOffset}");
+    }
+
     // Calculer les métriques
     final double screenCenterX = viewSize.width / 2;
     final double screenCenterY = viewSize.height / 2;
