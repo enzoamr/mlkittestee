@@ -1565,27 +1565,42 @@ class _CameraWidgetState extends State<CameraWidget>
 
   @override
   Widget build(BuildContext context) {
-    final double previewWidth =
-        widget.width ?? MediaQuery.of(context).size.width;
-    final double previewHeight =
-        widget.height ?? MediaQuery.of(context).size.height;
+    // ✅ VRAIE SOLUTION: Utiliser LayoutBuilder pour obtenir les contraintes réelles
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Déterminer la taille du preview basée sur les contraintes réelles
+        final double previewWidth = widget.width ??
+            (constraints.maxWidth.isFinite ? constraints.maxWidth : MediaQuery.of(context).size.width);
+        final double previewHeight = widget.height ??
+            (constraints.maxHeight.isFinite ? constraints.maxHeight : MediaQuery.of(context).size.height);
 
-    // Stocker la taille du preview pour la transformation de coordonnées
-    // ⚠️ CRITICAL: Vérifier que les valeurs sont FINIES (pas Infinity!)
-    if (previewWidth.isFinite && previewHeight.isFinite && previewWidth > 0 && previewHeight > 0) {
-      _previewWidth = previewWidth;
-      _previewHeight = previewHeight;
-    } else {
-      debugPrint("⚠️ build() - Preview size invalide (Infinity ou 0): ${previewWidth}x${previewHeight}");
-      // Ne pas écraser les valeurs existantes si elles sont valides
-      if (_previewWidth == null || _previewHeight == null || !_previewWidth!.isFinite || !_previewHeight!.isFinite) {
-        // Fallback: utiliser une taille par défaut raisonnable
-        _previewWidth = 360.0;
-        _previewHeight = 640.0;
-        debugPrint("   → Utilisation taille fallback: ${_previewWidth}x${_previewHeight}");
-      }
-    }
+        // Stocker la taille du preview pour la transformation de coordonnées
+        // ⚠️ CRITICAL: Vérifier que les valeurs sont FINIES (pas Infinity!)
+        if (previewWidth.isFinite && previewHeight.isFinite && previewWidth > 0 && previewHeight > 0) {
+          _previewWidth = previewWidth;
+          _previewHeight = previewHeight;
+        } else {
+          debugPrint("⚠️ build() - Preview size invalide (Infinity ou 0): ${previewWidth}x${previewHeight}");
+          debugPrint("   - widget.width: ${widget.width}");
+          debugPrint("   - widget.height: ${widget.height}");
+          debugPrint("   - constraints: ${constraints}");
+          debugPrint("   - MediaQuery.size: ${MediaQuery.of(context).size}");
 
+          // Ne pas écraser les valeurs existantes si elles sont valides
+          if (_previewWidth == null || _previewHeight == null || !_previewWidth!.isFinite || !_previewHeight!.isFinite) {
+            // Fallback ultime: utiliser une taille par défaut raisonnable
+            _previewWidth = 360.0;
+            _previewHeight = 640.0;
+            debugPrint("   → Utilisation taille fallback: ${_previewWidth}x${_previewHeight}");
+          }
+        }
+
+        return _buildCameraWidget(context, previewWidth, previewHeight);
+      },
+    );
+  }
+
+  Widget _buildCameraWidget(BuildContext context, double previewWidth, double previewHeight) {
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (bool didPop, dynamic result) async {
