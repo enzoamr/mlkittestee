@@ -141,9 +141,9 @@ class CoordinateTransformer {
   final Size viewSize;
   final bool isImageFlipped;
 
-  late final double scaleFactor;
-  late final double postScaleWidthOffset;
-  late final double postScaleHeightOffset;
+  late double scaleFactor;
+  late double postScaleWidthOffset;
+  late double postScaleHeightOffset;
 
   CoordinateTransformer({
     required this.imageWidth,
