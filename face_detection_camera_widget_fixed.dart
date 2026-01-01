@@ -592,23 +592,36 @@ class _CameraWidgetState extends State<CameraWidget>
     try {
       final InputImageRotation rotation = _getImageRotation();
 
-      // Convertir l'image
+      // Convertir l'image selon la plateforme
       final Uint8List bytes;
       final InputImageFormat format;
+      final int bytesPerRow;
 
       if (Platform.isAndroid) {
-        bytes = image.planes[0].bytes;
+        // Sur Android, gérer les deux cas : NV21 direct ou YUV_420_888
         format = InputImageFormat.nv21;
+
+        if (image.planes.length == 1) {
+          // Format NV21 direct (rare)
+          bytes = image.planes[0].bytes;
+          bytesPerRow = image.planes[0].bytesPerRow;
+        } else {
+          // Format YUV_420_888 (plus courant) - Conversion nécessaire
+          bytes = _convertYUV420ToNV21(image);
+          bytesPerRow = image.width; // Pour NV21, bytesPerRow = width
+        }
       } else {
+        // iOS - Format BGRA8888
         bytes = image.planes[0].bytes;
         format = InputImageFormat.bgra8888;
+        bytesPerRow = image.planes[0].bytesPerRow;
       }
 
       final metadata = InputImageMetadata(
         size: Size(image.width.toDouble(), image.height.toDouble()),
         rotation: rotation,
         format: format,
-        bytesPerRow: image.planes[0].bytesPerRow,
+        bytesPerRow: bytesPerRow,
       );
 
       final inputImage = InputImage.fromBytes(bytes: bytes, metadata: metadata);
@@ -617,6 +630,51 @@ class _CameraWidgetState extends State<CameraWidget>
       debugPrint('❌ Erreur ML Kit: $e');
       return [];
     }
+  }
+
+  /// Convertit YUV_420_888 (3 planes) vers NV21 (format requis par ML Kit Android)
+  Uint8List _convertYUV420ToNV21(CameraImage image) {
+    final int width = image.width;
+    final int height = image.height;
+    final int ySize = width * height;
+    final int uvSize = width * height ~/ 2;
+
+    final Uint8List nv21 = Uint8List(ySize + uvSize);
+
+    // Copier le plan Y (luminance)
+    final Plane yPlane = image.planes[0];
+    final int yRowStride = yPlane.bytesPerRow;
+    final int yPixelStride = yPlane.bytesPerPixel ?? 1;
+
+    int dstIndex = 0;
+    for (int y = 0; y < height; y++) {
+      int srcRow = y * yRowStride;
+      for (int x = 0; x < width; x++) {
+        nv21[dstIndex++] = yPlane.bytes[srcRow + x * yPixelStride];
+      }
+    }
+
+    // Copier les plans U et V (chrominance) en format entrelacé NV21 (VUVUVU...)
+    final Plane uPlane = image.planes[1];
+    final Plane vPlane = image.planes[2];
+    final int uvRowStride = uPlane.bytesPerRow;
+    final int uvPixelStride = uPlane.bytesPerPixel ?? 2;
+
+    final int uvWidth = width ~/ 2;
+    final int uvHeight = height ~/ 2;
+
+    int uvDstIndex = ySize;
+    for (int y = 0; y < uvHeight; y++) {
+      int srcRow = y * uvRowStride;
+      for (int x = 0; x < uvWidth; x++) {
+        final int srcIndex = srcRow + x * uvPixelStride;
+        // NV21 = VU VU VU... (V avant U!)
+        nv21[uvDstIndex++] = vPlane.bytes[srcIndex];
+        nv21[uvDstIndex++] = uPlane.bytes[srcIndex];
+      }
+    }
+
+    return nv21;
   }
 
   InputImageRotation _getImageRotation() {
