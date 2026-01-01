@@ -903,8 +903,8 @@ class _CameraWidgetState extends State<CameraWidget>
       // ✅ RECRÉER le transformer à chaque fois avec les bonnes dimensions
       // (Important: utiliser la taille du preview, pas la taille de l'écran!)
       if (_cameraController != null && _previewWidth != null && _previewHeight != null) {
-        // ⚠️ Sécurité: vérifier que les dimensions sont valides
-        if (_previewWidth! <= 0 || _previewHeight! <= 0) {
+        // ⚠️ Sécurité: vérifier que les dimensions sont valides (finies et > 0)
+        if (!_previewWidth!.isFinite || !_previewHeight!.isFinite || _previewWidth! <= 0 || _previewHeight! <= 0) {
           debugPrint("⚠️ Preview size invalide pour transformer: ${_previewWidth}x${_previewHeight}");
           _transformer = null;
           return;
@@ -1571,11 +1571,19 @@ class _CameraWidgetState extends State<CameraWidget>
         widget.height ?? MediaQuery.of(context).size.height;
 
     // Stocker la taille du preview pour la transformation de coordonnées
-    if (previewWidth > 0 && previewHeight > 0) {
+    // ⚠️ CRITICAL: Vérifier que les valeurs sont FINIES (pas Infinity!)
+    if (previewWidth.isFinite && previewHeight.isFinite && previewWidth > 0 && previewHeight > 0) {
       _previewWidth = previewWidth;
       _previewHeight = previewHeight;
     } else {
-      debugPrint("⚠️ build() - Preview size invalide: ${previewWidth}x${previewHeight}");
+      debugPrint("⚠️ build() - Preview size invalide (Infinity ou 0): ${previewWidth}x${previewHeight}");
+      // Ne pas écraser les valeurs existantes si elles sont valides
+      if (_previewWidth == null || _previewHeight == null || !_previewWidth!.isFinite || !_previewHeight!.isFinite) {
+        // Fallback: utiliser une taille par défaut raisonnable
+        _previewWidth = 360.0;
+        _previewHeight = 640.0;
+        debugPrint("   → Utilisation taille fallback: ${_previewWidth}x${_previewHeight}");
+      }
     }
 
     return PopScope(
