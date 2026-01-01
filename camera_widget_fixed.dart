@@ -891,6 +891,13 @@ class _CameraWidgetState extends State<CameraWidget>
       // ✅ RECRÉER le transformer à chaque fois avec les bonnes dimensions
       // (Important: utiliser la taille du preview, pas la taille de l'écran!)
       if (_cameraController != null && _previewWidth != null && _previewHeight != null) {
+        // ⚠️ Sécurité: vérifier que les dimensions sont valides
+        if (_previewWidth! <= 0 || _previewHeight! <= 0) {
+          debugPrint("⚠️ Preview size invalide pour transformer: ${_previewWidth}x${_previewHeight}");
+          _transformer = null;
+          return;
+        }
+
         final previewSize = _cameraController!.value.previewSize!;
         final rotation = _getImageRotation();
 
@@ -929,6 +936,12 @@ class _CameraWidgetState extends State<CameraWidget>
 
       // Valider le visage
       if (_transformer != null && _previewWidth != null && _previewHeight != null) {
+        // ⚠️ Sécurité: vérifier que les dimensions sont valides (pas 0)
+        if (_previewWidth! <= 0 || _previewHeight! <= 0) {
+          debugPrint("⚠️ Preview size invalide: ${_previewWidth}x${_previewHeight}");
+          return; // Ignorer cette frame
+        }
+
         final validator = FaceValidator(
           transformer: _transformer!,
           viewSize: Size(_previewWidth!, _previewHeight!),
@@ -1546,8 +1559,12 @@ class _CameraWidgetState extends State<CameraWidget>
         widget.height ?? MediaQuery.of(context).size.height;
 
     // Stocker la taille du preview pour la transformation de coordonnées
-    _previewWidth = previewWidth;
-    _previewHeight = previewHeight;
+    if (previewWidth > 0 && previewHeight > 0) {
+      _previewWidth = previewWidth;
+      _previewHeight = previewHeight;
+    } else {
+      debugPrint("⚠️ build() - Preview size invalide: ${previewWidth}x${previewHeight}");
+    }
 
     return PopScope(
       canPop: true,
