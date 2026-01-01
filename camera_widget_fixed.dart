@@ -33,7 +33,7 @@ class FaceDetectionConfig {
   static const double maxFaceSize = 0.50; // 50% de l'écran (CORRIGÉ: était 70%)
 
   // Tolérance de centrage (ratio par rapport aux dimensions de l'écran)
-  static const double centerTolerance = 0.40; // 40% (TRÈS ÉLARGI pour gérer le décalage caméra/écran)
+  static const double centerTolerance = 0.20; // 20% (CORRIGÉ: était 40% à cause du bug de viewSize)
 
   // Tolérance d'angle (degrés)
   static const double angleTolerance = 25.0; // 25° (ÉLARGI: était 20°)
@@ -620,6 +620,10 @@ class _CameraWidgetState extends State<CameraWidget>
   DateTime? _lastFeedbackUpdate;
   int _frameCounter = 0;
 
+  // Preview size (pour coordinate transformation)
+  double? _previewWidth;
+  double? _previewHeight;
+
   @override
   void initState() {
     super.initState();
@@ -884,11 +888,14 @@ class _CameraWidgetState extends State<CameraWidget>
       // Un seul visage - Valider!
       final face = faces.first;
 
-      // Créer le transformer si nécessaire
-      if (_transformer == null && _cameraController != null) {
+      // ✅ RECRÉER le transformer à chaque fois avec les bonnes dimensions
+      // (Important: utiliser la taille du preview, pas la taille de l'écran!)
+      if (_cameraController != null && _previewWidth != null && _previewHeight != null) {
         final previewSize = _cameraController!.value.previewSize!;
         final rotation = _getImageRotation();
-        final screenSize = MediaQuery.of(context).size;
+
+        // ✅ FIX: Utiliser la VRAIE taille de la vue du preview, pas la taille de l'écran!
+        final viewSize = Size(_previewWidth!, _previewHeight!);
 
         // Déterminer les dimensions de l'image selon la rotation
         int imageWidth;
@@ -906,16 +913,25 @@ class _CameraWidgetState extends State<CameraWidget>
         _transformer = CoordinateTransformer(
           imageWidth: imageWidth,
           imageHeight: imageHeight,
-          viewSize: screenSize,
+          viewSize: viewSize,
           isImageFlipped: !_isRearCamera,
         );
+
+        // Log de debug pour vérifier les dimensions (une fois toutes les 30 frames)
+        if (_frameCounter % 30 == 0) {
+          debugPrint("🔧 CoordinateTransformer créé:");
+          debugPrint("   - Image size: ${imageWidth}x${imageHeight}");
+          debugPrint("   - View size: ${viewSize.width.toStringAsFixed(1)}x${viewSize.height.toStringAsFixed(1)}");
+          debugPrint("   - Rotation: $rotation");
+          debugPrint("   - Flipped: ${!_isRearCamera}");
+        }
       }
 
       // Valider le visage
-      if (_transformer != null) {
+      if (_transformer != null && _previewWidth != null && _previewHeight != null) {
         final validator = FaceValidator(
           transformer: _transformer!,
-          viewSize: MediaQuery.of(context).size,
+          viewSize: Size(_previewWidth!, _previewHeight!),
         );
 
         _currentResult = validator.validate(face);
@@ -1528,6 +1544,10 @@ class _CameraWidgetState extends State<CameraWidget>
         widget.width ?? MediaQuery.of(context).size.width;
     final double previewHeight =
         widget.height ?? MediaQuery.of(context).size.height;
+
+    // Stocker la taille du preview pour la transformation de coordonnées
+    _previewWidth = previewWidth;
+    _previewHeight = previewHeight;
 
     return PopScope(
       canPop: true,
