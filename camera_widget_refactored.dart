@@ -1004,37 +1004,29 @@ class _CameraWidgetState extends State<CameraWidget>
 
       CameraLogger.log("📸 Photo prise, navigation vers preview...");
 
-      // ✅ Navigation - la caméra reste en pause
+      // Navigation vers la page de preview
+      // Note: Le widget sera détruit puis recréé au retour (FlutterFlow behavior)
       await widget.uploadPhotosAction([uploadedFile]);
 
-      // ✅ Quand on revient ici, réactiver la caméra
-      CameraLogger.log("🔙 Retour détecté, réactivation caméra");
-
-      if (mounted && _state.lifecycle == CameraLifecycleState.paused) {
-        setState(() {
-          _state.lifecycle = CameraLifecycleState.ready;
-          _currentResult = FaceValidationResult.noFace();
-        });
-
-        // Attendre un peu pour laisser l'UI se stabiliser
-        await Future.delayed(Duration(milliseconds: 300));
-
-        if (mounted && _state.lifecycle == CameraLifecycleState.ready) {
-          _startFaceDetection();
-        }
-      }
+      CameraLogger.log("🔙 Retour de uploadPhotosAction (widget peut être détruit)");
 
     } catch (e) {
       CameraLogger.error('Erreur prise de photo: $e');
       _showError("Erreur lors de la capture");
 
-      // En cas d'erreur, remettre en ready
-      if (mounted) {
+      // En cas d'erreur, réactiver la caméra
+      if (mounted && _state.lifecycle == CameraLifecycleState.paused) {
         setState(() {
           _state.lifecycle = CameraLifecycleState.ready;
+          _state.isProcessing = false;
           _currentResult = FaceValidationResult.noFace();
         });
-        _startFaceDetection();
+
+        await Future.delayed(Duration(milliseconds: 200));
+
+        if (mounted && _state.lifecycle == CameraLifecycleState.ready) {
+          _startFaceDetection();
+        }
       }
     } finally {
       if (mounted) {
@@ -1074,12 +1066,18 @@ class _CameraWidgetState extends State<CameraWidget>
       if (image == null) {
         CameraLogger.log("📷 Sélection galerie annulée");
 
-        // ✅ Réactiver la caméra si annulé
+        // ✅ Réactiver la caméra si annulé (on reste sur le même widget)
         if (mounted) {
           setState(() {
             _state.lifecycle = CameraLifecycleState.ready;
+            _state.isProcessing = false;
           });
-          _startFaceDetection();
+
+          await Future.delayed(Duration(milliseconds: 200));
+
+          if (mounted && _state.lifecycle == CameraLifecycleState.ready) {
+            _startFaceDetection();
+          }
         }
         return;
       }
@@ -1101,28 +1099,14 @@ class _CameraWidgetState extends State<CameraWidget>
         blurHash: '',
       );
 
+      // Navigation vers preview (widget sera détruit puis recréé au retour)
       await widget.uploadPhotosAction([uploadedFile]);
 
-      // ✅ Réactiver au retour
-      if (mounted) {
-        setState(() {
-          _state.lifecycle = CameraLifecycleState.ready;
-        });
-        await Future.delayed(Duration(milliseconds: 300));
-        _startFaceDetection();
-      }
+      CameraLogger.log("🔙 Retour de galerie (widget peut être détruit)");
 
     } catch (e) {
       CameraLogger.error('Erreur galerie: $e');
       _showError("Erreur import photo");
-
-      // ✅ Réactiver en cas d'erreur
-      if (mounted) {
-        setState(() {
-          _state.lifecycle = CameraLifecycleState.ready;
-        });
-        _startFaceDetection();
-      }
     } finally {
       if (mounted) {
         setState(() {
