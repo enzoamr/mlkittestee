@@ -1005,10 +1005,11 @@ class _CameraWidgetState extends State<CameraWidget>
       CameraLogger.log("📸 Photo prise, navigation vers preview...");
 
       // Navigation vers la page de preview
-      // Note: Le widget sera détruit puis recréé au retour (FlutterFlow behavior)
+      // Note: uploadPhotosAction() retourne immédiatement après la navigation
+      // Le widget sera détruit par FlutterFlow, puis recréé quand l'utilisateur revient
       await widget.uploadPhotosAction([uploadedFile]);
 
-      CameraLogger.log("🔙 Retour de uploadPhotosAction (widget peut être détruit)");
+      CameraLogger.log("✅ Navigation déclenchée, widget va être détruit");
 
     } catch (e) {
       CameraLogger.error('Erreur prise de photo: $e');
@@ -1099,10 +1100,10 @@ class _CameraWidgetState extends State<CameraWidget>
         blurHash: '',
       );
 
-      // Navigation vers preview (widget sera détruit puis recréé au retour)
+      // Navigation vers preview (uploadPhotosAction retourne immédiatement)
       await widget.uploadPhotosAction([uploadedFile]);
 
-      CameraLogger.log("🔙 Retour de galerie (widget peut être détruit)");
+      CameraLogger.log("✅ Navigation galerie déclenchée, widget va être détruit");
 
     } catch (e) {
       CameraLogger.error('Erreur galerie: $e');
