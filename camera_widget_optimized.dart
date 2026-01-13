@@ -704,7 +704,6 @@ class _CameraWidgetState extends State<CameraWidget>
 
       final face = faces.first;
 
-      final rot = _lastStreamRotation ?? _getImageRotation();
       final rawW = _lastStreamImageWidth;
       final rawH = _lastStreamImageHeight;
 
@@ -713,17 +712,11 @@ class _CameraWidgetState extends State<CameraWidget>
         return;
       }
 
-      // ✅ Tenir compte de la rotation
-      final bool swapped = (rot == InputImageRotation.rotation90deg ||
-          rot == InputImageRotation.rotation270deg);
-
-      final int imageWidth = swapped ? rawH : rawW;
-      final int imageHeight = swapped ? rawW : rawH;
-
-      // ✅ Validation simplifiée dans l'espace image
+      // ✅ ML Kit retourne boundingBox dans l'espace image BRUTE (non-rotée)
+      // Donc on utilise les dimensions RAW, pas swappées
       final validator = FaceValidator(
-        imageWidth: imageWidth,
-        imageHeight: imageHeight,
+        imageWidth: rawW,
+        imageHeight: rawH,
       );
 
       _currentResult = validator.validate(face);
