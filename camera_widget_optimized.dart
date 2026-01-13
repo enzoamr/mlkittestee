@@ -414,6 +414,7 @@ class _CameraWidgetState extends State<CameraWidget>
 
   DateTime? _lastFeedbackUpdate;
   int _frameCounter = 0;
+  bool _isProcessingFrame = false; // ✅ Lock pour éviter traitement parallèle
 
   double? _previewWidth;
   double? _previewHeight;
@@ -570,6 +571,10 @@ class _CameraWidgetState extends State<CameraWidget>
 
         if (_frameCounter % FaceDetectionConfig.frameSkipCount != 0) return;
 
+        // ✅ LOCK: Éviter traitement parallèle de frames
+        if (_isProcessingFrame) return;
+        _isProcessingFrame = true;
+
         try {
           if (_faceDetector != null) {
             final faces = await _detectFacesFromCameraImage(image)
@@ -583,6 +588,9 @@ class _CameraWidgetState extends State<CameraWidget>
           if (_frameCounter % 30 == 0) {
             CameraLogger.log('⚠️ Erreur détection frame: $e');
           }
+        } finally {
+          // ✅ UNLOCK: Toujours libérer le lock (même si erreur)
+          _isProcessingFrame = false;
         }
       });
 
@@ -727,10 +735,12 @@ class _CameraWidgetState extends State<CameraWidget>
       try {
         await _cameraController!.stopImageStream();
         _state.isStreamingImages = false;
+        _isProcessingFrame = false; // ✅ Reset lock
         CameraLogger.log("⏹️ Stream arrêté");
       } catch (e) {
         CameraLogger.error('Erreur arrêt stream: $e');
         _state.isStreamingImages = false;
+        _isProcessingFrame = false; // ✅ Reset lock même en cas d'erreur
       }
     }
   }
@@ -1092,6 +1102,7 @@ class _CameraWidgetState extends State<CameraWidget>
       try {
         _cameraController!.stopImageStream();
         _state.isStreamingImages = false;
+        _isProcessingFrame = false; // ✅ Reset lock
       } catch (e) {
         CameraLogger.error("Erreur arrêt stream dans dispose: $e");
       }
