@@ -645,7 +645,7 @@ class _CameraWidgetState extends State<CameraWidget>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Color(0xFF00E676).withOpacity(0.5),
                           width: 3,
                         ),
                       ),
@@ -656,17 +656,17 @@ class _CameraWidgetState extends State<CameraWidget>
                     height: 70,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white,
+                      color: Color(0xFF00E676),
                       border: Border.all(color: Colors.white, width: 4),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.white.withOpacity(0.5),
+                          color: Color(0xFF00E676).withOpacity(0.5),
                           blurRadius: 20,
                           spreadRadius: 2,
                         ),
                       ],
                     ),
-                    child: Icon(Icons.camera_alt, color: Colors.black, size: 28),
+                    child: Icon(Icons.camera_alt, color: Colors.white, size: 28),
                   ),
                 ],
               ),
