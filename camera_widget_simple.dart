@@ -392,15 +392,10 @@ class _CameraWidgetState extends State<CameraWidget>
         _showError("Erreur lors de la capture");
       }
 
+      // Seulement en cas d'erreur, on réactive la caméra
       if (mounted && _state.lifecycle == CameraLifecycleState.paused) {
         setState(() {
           _state.lifecycle = CameraLifecycleState.ready;
-          _state.isProcessing = false;
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
           _state.isProcessing = false;
         });
       }
