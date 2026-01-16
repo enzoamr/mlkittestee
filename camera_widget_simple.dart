@@ -13,13 +13,9 @@ import 'index.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io' show File, Platform;
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:flutter/foundation.dart';
-import 'dart:ui' as ui;
 import 'package:image/image.dart' as img;
-import 'package:flutter/services.dart';
-import 'dart:math' as math;
 import 'dart:async';
 
 /// ============================================================================
@@ -27,7 +23,6 @@ import 'dart:async';
 /// ============================================================================
 class CameraConfig {
   static const bool enableDebugLogs = true;
-  static const bool showDebugButton = true;
 }
 
 /// ============================================================================
@@ -92,7 +87,7 @@ class ImageProcessor {
         height: cropHeight,
       );
 
-      // ✅ Qualité maximale (95) pour photo d'identité
+      // Qualité maximale (95) pour photo d'identité
       final encodedBytes = img.encodeJpg(croppedImage, quality: 95);
       CameraLogger.log("✅ Image recadrée: ${cropWidth}x${cropHeight}");
 
@@ -121,9 +116,6 @@ class CameraState {
   bool isFlashOn = false;
   bool isSwitchingCamera = false;
   bool isRearCamera = false;
-
-  bool get canTakePhoto =>
-      lifecycle == CameraLifecycleState.ready && !isProcessing;
 }
 
 class CameraWidget extends StatefulWidget {
@@ -149,13 +141,8 @@ class _CameraWidgetState extends State<CameraWidget>
   CameraController? _cameraController;
   List<CameraDescription> _cameras = [];
 
-  bool _showDebugInfo = false;
-
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
-
-  double? _previewWidth;
-  double? _previewHeight;
 
   @override
   void initState() {
@@ -368,7 +355,6 @@ class _CameraWidgetState extends State<CameraWidget>
       final XFile image =
           await _cameraController!.takePicture().timeout(Duration(seconds: 5));
 
-      // Crop au ratio 7/9
       Uint8List imageBytes = await image.readAsBytes();
 
       if (!mounted) return;
@@ -491,15 +477,6 @@ class _CameraWidgetState extends State<CameraWidget>
           _state.isProcessing = false;
         });
       }
-    }
-  }
-
-  void _toggleDebugMode() {
-    if (mounted) {
-      setState(() {
-        _showDebugInfo = !_showDebugInfo;
-      });
-      CameraLogger.log("🐛 Mode debug: ${_showDebugInfo ? 'ON' : 'OFF'}");
     }
   }
 
@@ -633,47 +610,9 @@ class _CameraWidgetState extends State<CameraWidget>
 
     return CustomPaint(
       size: Size(previewWidth, previewHeight),
-      painter: MinimalGuidePainter(
+      painter: IdentityGuidePainter(
         ovalWidth: ovalWidth,
         ovalHeight: ovalHeight,
-      ),
-    );
-  }
-
-  Widget _buildStatusIndicator() {
-    return AnimatedPositioned(
-      duration: Duration(milliseconds: 300),
-      top: 100,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.75),
-            borderRadius: BorderRadius.circular(30),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.5),
-              width: 2,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.camera_alt, color: Colors.white, size: 20),
-              SizedBox(width: 10),
-              Text(
-                "Prêt à capturer",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.3,
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -706,7 +645,7 @@ class _CameraWidgetState extends State<CameraWidget>
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Color(0xFF00E676).withOpacity(0.5),
+                          color: Colors.white.withOpacity(0.5),
                           width: 3,
                         ),
                       ),
@@ -717,18 +656,17 @@ class _CameraWidgetState extends State<CameraWidget>
                     height: 70,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Color(0xFF00E676),
+                      color: Colors.white,
                       border: Border.all(color: Colors.white, width: 4),
                       boxShadow: [
                         BoxShadow(
-                          color: Color(0xFF00E676).withOpacity(0.5),
+                          color: Colors.white.withOpacity(0.5),
                           blurRadius: 20,
                           spreadRadius: 2,
                         ),
                       ],
                     ),
-                    child:
-                        Icon(Icons.camera_alt, color: Colors.white, size: 28),
+                    child: Icon(Icons.camera_alt, color: Colors.black, size: 28),
                   ),
                 ],
               ),
@@ -773,9 +711,6 @@ class _CameraWidgetState extends State<CameraWidget>
         if (!w.isFinite || w <= 0) w = MediaQuery.of(context).size.width;
         if (!h.isFinite || h <= 0) h = MediaQuery.of(context).size.height;
 
-        _previewWidth = w;
-        _previewHeight = h;
-
         return _buildCameraWidget(context, w, h);
       },
     );
@@ -793,6 +728,7 @@ class _CameraWidgetState extends State<CameraWidget>
       },
       child: Stack(
         children: [
+          // Prévisualisation caméra
           if ((_state.lifecycle == CameraLifecycleState.ready ||
                   _state.lifecycle == CameraLifecycleState.paused) &&
               _cameraController != null)
@@ -833,6 +769,8 @@ class _CameraWidgetState extends State<CameraWidget>
                 ),
               ),
             ),
+
+          // Overlay du guide
           if (_state.lifecycle == CameraLifecycleState.ready &&
               _cameraController != null)
             Center(
@@ -842,9 +780,8 @@ class _CameraWidgetState extends State<CameraWidget>
                 child: _buildIdentityOverlay(previewWidth, previewHeight),
               ),
             ),
-          if (_state.lifecycle == CameraLifecycleState.ready &&
-              !_state.isProcessing)
-            _buildStatusIndicator(),
+
+          // Écran de traitement
           if (_state.isProcessing)
             Container(
               color: Colors.black.withOpacity(0.8),
@@ -874,9 +811,11 @@ class _CameraWidgetState extends State<CameraWidget>
               ),
             )
           else
+            // Contrôles UI
             SafeArea(
               child: Column(
                 children: [
+                  // Barre supérieure
                   Padding(
                     padding: EdgeInsets.all(16),
                     child: Row(
@@ -894,19 +833,6 @@ class _CameraWidgetState extends State<CameraWidget>
                         ),
                         Row(
                           children: [
-                            if (CameraConfig.showDebugButton)
-                              _buildModernIconButton(
-                                onPressed: _toggleDebugMode,
-                                icon: Icons.bug_report,
-                                semanticLabel: _showDebugInfo
-                                    ? 'Désactiver le mode debug'
-                                    : 'Activer le mode debug',
-                                backgroundColor:
-                                    _showDebugInfo ? Colors.yellow : null,
-                                isActive: _showDebugInfo,
-                              ),
-                            if (CameraConfig.showDebugButton)
-                              SizedBox(width: 12),
                             if (_state.isRearCamera)
                               _buildModernIconButton(
                                 onPressed: _toggleFlash,
@@ -933,6 +859,7 @@ class _CameraWidgetState extends State<CameraWidget>
                     ),
                   ),
                   Spacer(),
+                  // Barre inférieure
                   Padding(
                     padding: EdgeInsets.only(bottom: 40, left: 20, right: 20),
                     child: Row(
@@ -955,13 +882,13 @@ class _CameraWidgetState extends State<CameraWidget>
 }
 
 /// ============================================================================
-/// PAINTER - Guide visuel
+/// PAINTER - Guide visuel format identité
 /// ============================================================================
-class MinimalGuidePainter extends CustomPainter {
+class IdentityGuidePainter extends CustomPainter {
   final double ovalWidth;
   final double ovalHeight;
 
-  MinimalGuidePainter({
+  IdentityGuidePainter({
     required this.ovalWidth,
     required this.ovalHeight,
   });
@@ -992,6 +919,7 @@ class MinimalGuidePainter extends CustomPainter {
       height: ovalHeight,
     );
 
+    // Zone sombre autour du guide
     final Path path = Path()
       ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
       ..addOval(ovalRect)
@@ -1003,6 +931,7 @@ class MinimalGuidePainter extends CustomPainter {
     final double cornerLength = 30;
     final double cornerOffset = 10;
 
+    // Coins du guide
     _drawCorner(canvas, cornerPaint, ovalRect.left, ovalRect.top, cornerLength,
         cornerOffset,
         isTopLeft: true);
@@ -1016,6 +945,7 @@ class MinimalGuidePainter extends CustomPainter {
         cornerLength, cornerOffset,
         isBottomRight: true);
 
+    // Ligne guide pour les yeux
     final Paint centerLinePaint = Paint()
       ..color = Colors.white.withOpacity(0.3)
       ..style = PaintingStyle.stroke
